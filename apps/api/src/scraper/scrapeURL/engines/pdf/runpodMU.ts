@@ -15,6 +15,7 @@ export async function scrapePDFWithRunPodMU(
   tempFilePath: string,
   base64Content: string,
   maxPages?: number,
+  pagesProcessed?: number,
 ): Promise<PDFProcessorResult> {
   meta.logger.debug("Processing PDF document with RunPod MU", {
     tempFilePath,
@@ -204,6 +205,7 @@ export async function scrapePDFWithRunPodMU(
     meta.logger.child({ method: "scrapePDF/MUv1" }).info("MU v1 completed", {
       durationMs,
       url: meta.rewrittenUrl ?? meta.url,
+      pagesProcessed,
     });
   }
 
