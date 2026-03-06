@@ -8,6 +8,7 @@ import { extractMetadata } from "../lib/extractMetadata";
 import {
   performLLMExtract,
   performSummary,
+  performQuery,
   performCleanContent,
 } from "./llmExtract";
 import { uploadScreenshot } from "./uploadScreenshot";
@@ -88,12 +89,14 @@ async function deriveMarkdownFromHTML(
   );
   const hasJson = hasFormatOfType(meta.options.formats, "json");
   const hasSummary = hasFormatOfType(meta.options.formats, "summary");
+  const hasQuery = !!meta.options.query;
 
   if (
     !hasMarkdown &&
     !hasChangeTracking &&
     !hasJson &&
     !hasSummary &&
+    !hasQuery &&
     !meta.options.onlyCleanContent
   ) {
     return document;
@@ -424,6 +427,10 @@ function coerceFieldsToFormats(meta: Meta, document: Document): Document {
     );
   }
 
+  if (!meta.options.query && document.answer !== undefined) {
+    delete document.answer;
+  }
+
   if (!hasBranding && document.branding !== undefined) {
     meta.logger.warn(
       "Removed branding from Document because it wasn't in formats -- this indicates the engine returned unexpected data.",
@@ -503,6 +510,7 @@ const transformerStack: Transformer[] = [
   ...(useSearchIndex ? [sendDocumentToSearchIndex] : []), // Add to search index for real-time search
   performLLMExtract,
   performSummary,
+  performQuery,
   performAttributes,
   performAgent,
   deriveDiff,

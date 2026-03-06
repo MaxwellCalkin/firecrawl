@@ -59,6 +59,10 @@ export async function calculateCreditsToBeBilled(
     creditsToBeBilled = 5;
   }
 
+  if (options.query) {
+    creditsToBeBilled = Math.max(creditsToBeBilled, 5);
+  }
+
   if (
     internalOptions.v1Agent?.model === "fire-1" ||
     internalOptions.v1JSONAgent?.model?.toLowerCase() === "fire-1"
