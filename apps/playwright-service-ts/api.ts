@@ -99,8 +99,8 @@ const initializeBrowser = async () => {
   });
 };
 
-const createContext = async (skipTlsVerification: boolean = false) => {
-  const userAgent = new UserAgent().toString();
+const createContext = async (skipTlsVerification: boolean = false, userAgentOverride?: string) => {
+  const userAgent = userAgentOverride || new UserAgent().toString();
   const viewport = { width: 1280, height: 800 };
 
   const contextOptions: any = {
@@ -252,11 +252,25 @@ app.post('/scrape', async (req: Request, res: Response) => {
   let page: Page | null = null;
 
   try {
-    requestContext = await createContext(skip_tls_verification);
+    // Extract user-agent from headers to set at the browser context level,
+    // since Playwright ignores user-agent in setExtraHTTPHeaders when a
+    // context-level user agent is already set.
+    let userAgentOverride: string | undefined;
+    let extraHeaders = headers;
+    if (headers) {
+      const uaKey = Object.keys(headers).find((k) => k.toLowerCase() === 'user-agent');
+      if (uaKey) {
+        userAgentOverride = headers[uaKey];
+        const { [uaKey]: _, ...rest } = headers;
+        extraHeaders = Object.keys(rest).length > 0 ? rest : undefined;
+      }
+    }
+
+    requestContext = await createContext(skip_tls_verification, userAgentOverride);
     page = await requestContext.newPage();
 
-    if (headers) {
-      await page.setExtraHTTPHeaders(headers);
+    if (extraHeaders) {
+      await page.setExtraHTTPHeaders(extraHeaders);
     }
 
     const result = await scrapePage(page, url, 'load', wait_after_load, timeout, check_selector);
