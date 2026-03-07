@@ -448,7 +448,10 @@ export interface SearchRequest {
   >;
   categories?: Array<'github' | 'research' | 'pdf' | CategoryOption>;
   limit?: number;
+  lang?: string;
+  country?: string;
   tbs?: string;
+  filter?: string;
   location?: string;
   ignoreInvalidURLs?: boolean;
   timeout?: number; // ms
