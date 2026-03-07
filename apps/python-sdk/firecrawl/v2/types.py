@@ -1039,7 +1039,10 @@ class SearchRequest(BaseModel):
     sources: Optional[List[SourceOption]] = None
     categories: Optional[List[CategoryOption]] = None
     limit: Optional[int] = 5
+    lang: Optional[str] = None
+    country: Optional[str] = None
     tbs: Optional[str] = None
+    filter: Optional[str] = None
     location: Optional[str] = None
     ignore_invalid_urls: Optional[bool] = None
     timeout: Optional[int] = 300000
