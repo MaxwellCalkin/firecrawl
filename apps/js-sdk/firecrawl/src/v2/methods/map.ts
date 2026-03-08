@@ -15,6 +15,10 @@ function prepareMapPayload(url: string, options?: MapOptions): Record<string, un
     if (options.integration != null && options.integration.trim()) payload.integration = options.integration.trim();
     if (options.origin) payload.origin = options.origin;
     if (options.location != null) payload.location = options.location;
+    if (options.filterByPath != null) payload.filterByPath = options.filterByPath;
+    if (options.useIndex != null) payload.useIndex = options.useIndex;
+    if (options.ignoreCache != null) payload.ignoreCache = options.ignoreCache;
+    if (options.headers != null) payload.headers = options.headers;
   }
   return payload;
 }
