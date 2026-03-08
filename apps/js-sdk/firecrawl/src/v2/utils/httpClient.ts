@@ -7,6 +7,12 @@ export interface HttpClientOptions {
   timeoutMs?: number;
   maxRetries?: number;
   backoffFactor?: number; // seconds factor for 0.5, 1, 2...
+  /**
+   * Custom HTTP headers merged into every request.
+   * Useful for self-hosted instances behind reverse proxies (e.g. Cloudflare Access).
+   * Custom values take precedence over the built-in Content-Type and Authorization headers.
+   */
+  headers?: Record<string, string>;
 }
 
 export class HttpClient {
@@ -27,6 +33,7 @@ export class HttpClient {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
+        ...(options.headers ?? {}),
       },
       transitional: { clarifyTimeoutError: true },
     });
