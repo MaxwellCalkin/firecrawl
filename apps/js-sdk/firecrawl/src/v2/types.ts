@@ -538,6 +538,10 @@ export interface MapOptions {
   integration?: string;
   origin?: string;
   location?: LocationConfig;
+  filterByPath?: boolean;
+  useIndex?: boolean;
+  ignoreCache?: boolean;
+  headers?: Record<string, string>;
 }
 
 export interface ExtractResponse {
