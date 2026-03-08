@@ -36,6 +36,7 @@ function prepareCrawlPayload(request: CrawlRequest): Record<string, unknown> {
   if (request.delay != null) data.delay = request.delay;
   if (request.maxConcurrency != null) data.maxConcurrency = request.maxConcurrency;
   if (request.regexOnFullURL != null) data.regexOnFullURL = request.regexOnFullURL;
+  if (request.ignoreRobotsTxt != null) data.ignoreRobotsTxt = request.ignoreRobotsTxt;
   if (request.webhook != null) data.webhook = request.webhook;
   if (request.integration != null && request.integration.trim()) data.integration = request.integration.trim();
   if (request.origin) data.origin = request.origin;
