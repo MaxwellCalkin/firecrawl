@@ -84,6 +84,7 @@ def _prepare_crawl_request(request: CrawlRequest) -> dict:
         "max_discovery_depth": "maxDiscoveryDepth",
         "sitemap": "sitemap",
         "ignore_query_parameters": "ignoreQueryParameters",
+        "ignore_robots_txt": "ignoreRobotsTxt",
         "deduplicate_similar_urls": "deduplicateSimilarURLs",
         "crawl_entire_domain": "crawlEntireDomain",
         "allow_external_links": "allowExternalLinks",
