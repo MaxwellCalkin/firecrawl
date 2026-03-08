@@ -488,6 +488,7 @@ fn convert_v2_document_to_v1(doc: Document) -> crate::document::Document {
             dc_date: metadata.dc_date,
             dc_date_created: metadata.dc_date_created,
             dcterms_created: metadata.dcterms_created,
+            extra: metadata.extra,
         },
         warning: doc.warning,
     }
@@ -684,5 +685,74 @@ mod tests {
         assert_eq!(result.data.len(), 1);
         start_mock.assert();
         status_mock.assert();
+    }
+
+    #[tokio::test]
+    async fn test_metadata_with_array_values() {
+        let mut server = mockito::Server::new_async().await;
+
+        // Mock a crawl status response with array values in metadata
+        // (the exact scenario from issue #1304)
+        let mock = server
+            .mock("GET", "/v2/crawl/crawl-array")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                json!({
+                    "status": "completed",
+                    "total": 1,
+                    "completed": 1,
+                    "data": [
+                        {
+                            "markdown": "# Page with array metadata",
+                            "metadata": {
+                                "sourceURL": "https://example.com/page",
+                                "statusCode": 200,
+                                "title": "Example Page",
+                                "viewport": [
+                                    "width=device-width, initial-scale=1",
+                                    "width=device-width,initial-scale=1.0,maximum-scale=1.0"
+                                ],
+                                "twitter:image": [
+                                    "https://example.com/img1.jpg",
+                                    "https://example.com/img2.jpg"
+                                ],
+                                "description": ["First description", "Second description"],
+                                "og:image": "https://example.com/og.jpg"
+                            }
+                        }
+                    ]
+                })
+                .to_string(),
+            )
+            .create();
+
+        let client = Client::new_selfhosted(server.url(), Some("test_key")).unwrap();
+        let status = client.get_crawl_status("crawl-array").await.unwrap();
+
+        assert_eq!(status.status, JobStatus::Completed);
+        assert_eq!(status.data.len(), 1);
+
+        let metadata = status.data[0].metadata.as_ref().unwrap();
+
+        // Known string field should still work normally
+        assert_eq!(metadata.title, Some("Example Page".to_string()));
+
+        // Known field that received an array should be joined
+        assert_eq!(
+            metadata.description,
+            Some("First description, Second description".to_string())
+        );
+
+        // Unknown fields with array values should be captured in extra
+        let viewport = metadata.extra.get("viewport").unwrap();
+        assert!(viewport.is_array());
+        assert_eq!(viewport.as_array().unwrap().len(), 2);
+
+        let twitter_image = metadata.extra.get("twitter:image").unwrap();
+        assert!(twitter_image.is_array());
+        assert_eq!(twitter_image.as_array().unwrap().len(), 2);
+
+        mock.assert();
     }
 }

@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use crate::flexible_value::deserialize_flexible_string;
+
 /// Available output formats for scraping operations.
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -296,6 +298,11 @@ impl From<&str> for AgentWebhookConfig {
 }
 
 /// Document metadata returned from scrape operations.
+///
+/// The API may return metadata fields as either strings or arrays of strings
+/// (e.g. when a page has duplicate meta tags). All known `Option<String>`
+/// fields accept both shapes -- arrays are joined with `", "`. Unknown
+/// fields are captured in [`extra`](DocumentMetadata::extra).
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -307,52 +314,92 @@ pub struct DocumentMetadata {
     pub error: Option<String>,
 
     // Basic meta tags
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub title: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub description: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub language: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub keywords: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub robots: Option<String>,
 
     // OpenGraph namespace
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_title: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_description: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_url: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_image: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_audio: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_determiner: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_locale: Option<String>,
     pub og_locale_alternate: Option<Vec<String>>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_site_name: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub og_video: Option<String>,
 
     // Article namespace
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub article_section: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub article_tag: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub published_time: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub modified_time: Option<String>,
 
     // Dublin Core namespace
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dcterms_keywords: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dc_description: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dc_subject: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dcterms_subject: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dcterms_audience: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dc_type: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dcterms_type: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dc_date: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dc_date_created: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub dcterms_created: Option<String>,
 
     // Response metadata
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub scrape_id: Option<String>,
     pub num_pages: Option<u32>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub content_type: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub timezone: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub proxy_used: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub cache_state: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_flexible_string")]
     pub cached_at: Option<String>,
     pub credits_used: Option<u32>,
     pub concurrency_limited: Option<bool>,
+
+    /// Additional metadata fields not covered by the struct fields above.
+    /// The API may return arbitrary metadata keys with string, array, or other
+    /// JSON values (e.g. `"viewport": ["width=...", "width=..."]`).
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
 }
 
 /// Extracted attribute result.

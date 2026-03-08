@@ -42,6 +42,7 @@ pub mod crawl;
 pub mod document;
 pub mod error;
 pub mod extract;
+pub(crate) mod flexible_value;
 pub mod llmstxt;
 pub mod map;
 pub mod scrape;
