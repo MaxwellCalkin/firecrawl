@@ -746,6 +746,10 @@ class MapOptions(BaseModel):
     timeout: Optional[int] = None
     integration: Optional[str] = None
     location: Optional["Location"] = None
+    filter_by_path: Optional[bool] = None
+    use_index: Optional[bool] = None
+    ignore_cache: Optional[bool] = None
+    headers: Optional[Dict[str, str]] = None
 
 
 class MapRequest(BaseModel):
