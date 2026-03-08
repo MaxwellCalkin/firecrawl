@@ -142,6 +142,7 @@ export interface ScrapeOptions {
   includeTags?: string[];
   excludeTags?: string[];
   onlyMainContent?: boolean;
+  onlyCleanContent?: boolean;
   timeout?: number;
   waitFor?: number;
   mobile?: boolean;
