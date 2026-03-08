@@ -33,6 +33,14 @@ def _prepare_map_request(url: str, options: Optional[MapOptions] = None) -> Dict
             data["integration"] = options.integration.strip()
         if options.location is not None:
             data["location"] = options.location.model_dump(exclude_none=True)
+        if options.filter_by_path is not None:
+            data["filterByPath"] = options.filter_by_path
+        if options.use_index is not None:
+            data["useIndex"] = options.use_index
+        if options.ignore_cache is not None:
+            data["ignoreCache"] = options.ignore_cache
+        if options.headers is not None:
+            data["headers"] = options.headers
         payload.update(data)
 
     return payload
