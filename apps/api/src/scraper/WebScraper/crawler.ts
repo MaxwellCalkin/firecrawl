@@ -16,6 +16,7 @@ import {
 import { ScrapeJobTimeoutError } from "../../lib/error";
 import { ScrapeOptions } from "../../controllers/v2/types";
 import { filterLinks, filterUrl } from "@mendable/firecrawl-rs";
+import { stripURLUserinfo } from "../../lib/crawl-redis";
 
 export const SITEMAP_LIMIT = 25;
 const SITEMAP_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
@@ -708,8 +709,9 @@ export class WebCrawler {
   }
 
   public async extractLinksFromHTML(html: string, url: string) {
+    let links: string[];
     try {
-      return [
+      links = [
         ...new Set(
           (await this.extractLinksFromHTMLRust(html, url))
             .map(x => {
@@ -731,9 +733,24 @@ export class WebCrawler {
           method: "extractMetadata",
         },
       );
+      links = await this.extractLinksFromHTMLCheerio(html, url);
     }
 
-    return await this.extractLinksFromHTMLCheerio(html, url);
+    // Strip userinfo (username:password@) from discovered URLs to prevent
+    // duplicate crawling caused by malformed mailto links or basic auth URLs.
+    // e.g., https://user@example.com/path -> https://example.com/path
+    return links.map(link => {
+      try {
+        const urlObj = new URL(link);
+        if (urlObj.username || urlObj.password) {
+          stripURLUserinfo(urlObj);
+          return urlObj.href;
+        }
+        return link;
+      } catch {
+        return link;
+      }
+    });
   }
 
   private isRobotsAllowed(

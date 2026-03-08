@@ -297,8 +297,24 @@ export async function getCrawlQualifiedJobCount(id: string): Promise<number> {
   return await redisEvictConnection.scard("crawl:" + id + ":jobs_qualified");
 }
 
+/**
+ * Strips userinfo (username:password@) from a URL.
+ * This prevents malformed mailto links (e.g., https://user@domain.com)
+ * and HTTP basic auth URLs (e.g., https://user:pass@domain.com)
+ * from being treated as distinct URLs, which causes duplicate crawling.
+ * Modern browsers strip userinfo per the URL spec.
+ */
+export function stripURLUserinfo(url: URL): URL {
+  if (url.username || url.password) {
+    url.username = "";
+    url.password = "";
+  }
+  return url;
+}
+
 export function normalizeURL(url: string, sc: StoredCrawl): string {
   const urlO = new URL(url);
+  stripURLUserinfo(urlO);
   if (sc && sc.crawlerOptions && sc.crawlerOptions.ignoreQueryParameters) {
     urlO.search = "";
   }
@@ -328,6 +344,7 @@ export function normalizeURL(url: string, sc: StoredCrawl): string {
 // - mogery
 export function generateURLPermutations(url: string | URL): URL[] {
   const urlO = new URL(url);
+  stripURLUserinfo(urlO);
 
   // Construct two versions, one with www., one without
   const urlWithWWW = new URL(urlO);
