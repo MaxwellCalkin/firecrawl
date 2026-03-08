@@ -507,6 +507,8 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
         "include_tags": "includeTags",
         "exclude_tags": "excludeTags",
         "only_main_content": "onlyMainContent",
+        "only_clean_content": "onlyCleanContent",
+        "min_age": "minAge",
         "wait_for": "waitFor",
         "skip_tls_verification": "skipTlsVerification",
         "remove_base64_images": "removeBase64Images",
