@@ -464,6 +464,7 @@ export interface CrawlOptions {
   maxDiscoveryDepth?: number | null;
   sitemap?: 'skip' | 'include' | 'only';
   ignoreQueryParameters?: boolean;
+  ignoreRobotsTxt?: boolean;
   deduplicateSimilarURLs?: boolean;
   limit?: number | null;
   crawlEntireDomain?: boolean;
