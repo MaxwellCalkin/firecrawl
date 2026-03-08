@@ -80,6 +80,13 @@ export interface FirecrawlClientOptions {
   maxRetries?: number;
   /** Exponential backoff factor for retries (optional). */
   backoffFactor?: number;
+  /**
+   * Custom HTTP headers to include in every request.
+   * Useful for self-hosted instances behind reverse proxies (e.g. Cloudflare Access).
+   * These headers are merged with the defaults; custom values override built-in
+   * headers such as Content-Type and Authorization when specified.
+   */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -111,6 +118,7 @@ export class FirecrawlClient {
       timeoutMs: options.timeoutMs,
       maxRetries: options.maxRetries,
       backoffFactor: options.backoffFactor,
+      headers: options.headers,
     });
   }
 
