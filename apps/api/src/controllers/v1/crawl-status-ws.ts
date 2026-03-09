@@ -19,7 +19,7 @@ import {
 import { getJobs, PseudoJob } from "./crawl-status";
 import * as Sentry from "@sentry/node";
 import { getConcurrencyLimitedJobs } from "../../lib/concurrency-limit";
-import { scrapeQueue, NuQJobStatus } from "../../services/worker/nuq";
+import { scrapeQueue, crawlGroup, NuQJobStatus } from "../../services/worker/nuq";
 import { getErrorContactMessage } from "../../lib/deployment";
 
 type ErrorMessage = {
@@ -64,10 +64,16 @@ async function crawlStatusWS(
 ) {
   const sc = await getCrawl(req.params.jobId);
   if (!sc) {
-    return close(ws, 1008, { type: "error", error: "Job not found" });
-  }
-
-  if (sc.team_id !== req.auth.team_id) {
+    // The Redis StoredCrawl may not be visible yet right after crawl creation.
+    // Fall back to the Postgres group row for existence and ownership checks.
+    const group = await crawlGroup.getGroup(req.params.jobId);
+    if (!group) {
+      return close(ws, 1008, { type: "error", error: "Job not found" });
+    }
+    if (group.ownerId !== req.auth.team_id) {
+      return close(ws, 3003, { type: "error", error: "Forbidden" });
+    }
+  } else if (sc.team_id !== req.auth.team_id) {
     return close(ws, 3003, { type: "error", error: "Forbidden" });
   }
 

@@ -202,7 +202,17 @@ export async function crawlStatusController(
   );
   const sc = await getCrawl(req.params.jobId);
 
-  if (!group || (!groupAnyJob && (!sc || sc.team_id !== req.auth.team_id))) {
+  // Verify the crawl exists and belongs to the requesting team.
+  // When a crawl is just created, the group row exists in Postgres but the
+  // Redis StoredCrawl (sc) and scrape jobs (groupAnyJob) may not be visible
+  // yet — a race condition between POST /v1/crawl returning and an immediate
+  // GET /v1/crawl/:id.  Use group.ownerId as a fallback for team ownership
+  // verification so that newly-created crawls are immediately queryable.
+  const teamOwnsViaJob = !!groupAnyJob;
+  const teamOwnsViaCrawl = !!sc && sc.team_id === req.auth.team_id;
+  const teamOwnsViaGroup = !!group && group.ownerId === req.auth.team_id;
+
+  if (!group || (!teamOwnsViaJob && !teamOwnsViaCrawl && !teamOwnsViaGroup)) {
     return res.status(404).json({ success: false, error: "Job not found" });
   }
 
