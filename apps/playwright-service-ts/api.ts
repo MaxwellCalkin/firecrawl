@@ -99,8 +99,8 @@ const initializeBrowser = async () => {
   });
 };
 
-const createContext = async (skipTlsVerification: boolean = false) => {
-  const userAgent = new UserAgent().toString();
+const createContext = async (skipTlsVerification: boolean = false, customUserAgent?: string) => {
+  const userAgent = customUserAgent || new UserAgent().toString();
   const viewport = { width: 1280, height: 800 };
 
   const contextOptions: any = {
@@ -157,6 +157,19 @@ const isValidUrl = (urlString: string): boolean => {
   } catch (_) {
     return false;
   }
+};
+
+const extractUserAgent = (headers: { [key: string]: string }): { userAgent: string | undefined; rest: { [key: string]: string } } => {
+  let userAgent: string | undefined;
+  const rest: { [key: string]: string } = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === 'user-agent') {
+      userAgent = value;
+    } else {
+      rest[key] = value;
+    }
+  }
+  return { userAgent, rest };
 };
 
 const scrapePage = async (page: Page, url: string, waitUntil: 'load' | 'networkidle', waitAfterLoad: number, timeout: number, checkSelector: string | undefined) => {
@@ -252,11 +265,22 @@ app.post('/scrape', async (req: Request, res: Response) => {
   let page: Page | null = null;
 
   try {
-    requestContext = await createContext(skip_tls_verification);
+    // Extract user-agent from headers so it can be set at the context level.
+    // Playwright ignores user-agent in setExtraHTTPHeaders when one is already
+    // set on the browser context (see #2802).
+    let customUserAgent: string | undefined;
+    let extraHeaders: { [key: string]: string } | undefined;
+    if (headers) {
+      const { userAgent: ua, rest } = extractUserAgent(headers);
+      customUserAgent = ua;
+      extraHeaders = Object.keys(rest).length > 0 ? rest : undefined;
+    }
+
+    requestContext = await createContext(skip_tls_verification, customUserAgent);
     page = await requestContext.newPage();
 
-    if (headers) {
-      await page.setExtraHTTPHeaders(headers);
+    if (extraHeaders) {
+      await page.setExtraHTTPHeaders(extraHeaders);
     }
 
     const result = await scrapePage(page, url, 'load', wait_after_load, timeout, check_selector);
