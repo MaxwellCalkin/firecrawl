@@ -396,6 +396,17 @@ pub async fn filter_links(data: FilterLinksCall) -> Result<FilterLinksResult> {
 fn _filter_url(data: FilterUrlCall) -> std::result::Result<FilterUrlResult, String> {
   let mut full_url = data.href.clone();
 
+
+  // Skip href values that look like email addresses (malformed mailto links)
+  // e.g., "email@domain.com" without mailto: prefix -- see #2591
+  if !data.href.starts_with("http") && !data.href.starts_with("/") && data.href.contains('@') {
+    return Ok(FilterUrlResult {
+      allowed: false,
+      url: None,
+      denial_reason: Some(NON_WEB_PROTOCOL.to_string()),
+    });
+  }
+
   // Handle relative URLs
   if !data.href.starts_with("http") {
     match Url::parse(&data.url) {
@@ -429,6 +440,16 @@ fn _filter_url(data: FilterUrlCall) -> std::result::Result<FilterUrlResult, Stri
       });
     }
   };
+
+
+  // Strip userinfo from URLs to prevent duplicate crawls from
+  // basic auth URLs (https://user:pass@domain.com) -- see #2591
+  let mut url = url;
+  if !url.username().is_empty() || url.password().is_some() {
+    let _ = url.set_username("");
+    let _ = url.set_password(None);
+    full_url = url.to_string();
+  }
 
   let base_url = match Url::parse(&data.base_url) {
     Ok(url) => url,

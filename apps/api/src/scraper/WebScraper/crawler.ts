@@ -284,6 +284,12 @@ export class WebCrawler {
           });
           return false;
         }
+        // Strip userinfo to prevent duplicate crawls from basic auth URLs -- #2591
+        if (url.username || url.password) {
+          url.username = "";
+          url.password = "";
+        }
+
         const path = url.pathname;
 
         const urlStr = url.toString();
@@ -680,6 +686,10 @@ export class WebCrawler {
       const element = $("a")[i];
       let href = $(element).attr("href");
       if (href) {
+        // Skip malformed mailto links (email@domain.com without mailto: prefix) -- #2591
+        if (!href.startsWith("http") && !href.startsWith("/") && href.includes("@")) {
+          continue;
+        }
         if (href.match(/^https?:\/[^\/]/)) {
           href = href.replace(/^https?:\//, "$&/");
         }
