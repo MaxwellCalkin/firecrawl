@@ -9,10 +9,10 @@ from ..types import ScrapeOptions, ScrapeFormats
 def _convert_format_string(format_str: str) -> str:
     """
     Convert format string from snake_case to camelCase.
-    
+
     Args:
         format_str: Format string in snake_case
-        
+
     Returns:
         Format string in camelCase
     """
@@ -22,6 +22,43 @@ def _convert_format_string(format_str: str) -> str:
         "screenshot_full_page": "screenshot@fullPage"
     }
     return format_mapping.get(format_str, format_str)
+
+
+def _serialize_format_object(fmt: Any) -> Any:
+    """
+    Serialize a Pydantic format model (ChangeTrackingFormat, AttributesFormat, etc.)
+    into a dict suitable for the API, converting snake_case keys to camelCase.
+
+    Simple format objects (e.g. Format(type="markdown")) are reduced to their type string.
+    Objects with extra configuration fields are serialized as dicts with proper key casing.
+
+    Args:
+        fmt: A Pydantic model instance with a ``type`` attribute.
+
+    Returns:
+        A string (for simple formats) or a dict (for formats with configuration).
+    """
+    data = fmt.model_dump(exclude_none=True) if hasattr(fmt, 'model_dump') else {}
+    # Normalize the type string (e.g. "change_tracking" -> "changeTracking")
+    if 'type' in data:
+        data['type'] = _convert_format_string(data['type'])
+
+    # If the only key is "type", collapse to a plain string
+    if list(data.keys()) == ['type']:
+        return data['type']
+
+    # snake_case -> camelCase for known format option keys
+    key_map = {
+        "full_page": "fullPage",
+    }
+    normalized: Dict[str, Any] = {}
+    for k, v in data.items():
+        camel = key_map.get(k, k)
+        # Recursively dump nested Pydantic models (e.g. viewport)
+        if hasattr(v, 'model_dump'):
+            v = v.model_dump(exclude_none=True)
+        normalized[camel] = v
+    return normalized
 
 
 def normalize_schema_for_openai(schema: Any) -> Any:
@@ -566,7 +603,7 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                                 if fmt.type == 'json':
                                     converted_formats.append(_validate_json_format(fmt.model_dump()))
                                 else:
-                                    converted_formats.append(_convert_format_string(fmt.type))
+                                    converted_formats.append(_serialize_format_object(fmt))
                             else:
                                 converted_formats.append(fmt)
 
@@ -625,7 +662,7 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                                     normalized['viewport'] = vp.model_dump(exclude_none=True) if hasattr(vp, 'model_dump') else vp
                                 converted_formats.append(normalized)
                             else:
-                                converted_formats.append(_convert_format_string(fmt.type))
+                                converted_formats.append(_serialize_format_object(fmt))
                         else:
                             converted_formats.append(fmt)
                 else:

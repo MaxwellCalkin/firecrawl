@@ -309,3 +309,64 @@ class TestPrepareScrapeOptions:
         result = prepare_scrape_options(options)
 
         assert result["parsers"][0]["maxPages"] == 5
+
+    def test_prepare_change_tracking_format_preserves_options(self):
+        """Ensure ChangeTrackingFormat options (modes, schema, prompt, tag) are preserved."""
+        from firecrawl.v2.types import ChangeTrackingFormat
+
+        ct = ChangeTrackingFormat(
+            type="changeTracking",
+            modes=["git-diff", "json"],
+            prompt="Summarize changes",
+            tag="v2.1",
+        )
+        options = ScrapeOptions(formats=["markdown", ct])
+        result = prepare_scrape_options(options)
+
+        assert "formats" in result
+        # Find the changeTracking entry (should be a dict, not a plain string)
+        ct_entries = [f for f in result["formats"] if isinstance(f, dict) and f.get("type") == "changeTracking"]
+        assert len(ct_entries) == 1, (
+            f"Expected a dict entry for changeTracking but got: {result['formats']}"
+        )
+        ct_out = ct_entries[0]
+        assert ct_out["modes"] == ["git-diff", "json"]
+        assert ct_out["prompt"] == "Summarize changes"
+        assert ct_out["tag"] == "v2.1"
+
+    def test_prepare_attributes_format_preserves_selectors(self):
+        """Ensure AttributesFormat selectors are preserved, not collapsed to a string."""
+        from firecrawl.v2.types import AttributesFormat, AttributeSelector
+
+        attrs = AttributesFormat(
+            type="attributes",
+            selectors=[
+                AttributeSelector(selector="div.product", attribute="data-id"),
+                AttributeSelector(selector="span.price", attribute="data-value"),
+            ],
+        )
+        options = ScrapeOptions(formats=[attrs])
+        result = prepare_scrape_options(options)
+
+        assert "formats" in result
+        attr_entries = [f for f in result["formats"] if isinstance(f, dict) and f.get("type") == "attributes"]
+        assert len(attr_entries) == 1, (
+            f"Expected a dict entry for attributes but got: {result['formats']}"
+        )
+        attr_out = attr_entries[0]
+        assert "selectors" in attr_out
+        assert len(attr_out["selectors"]) == 2
+        assert attr_out["selectors"][0]["selector"] == "div.product"
+        assert attr_out["selectors"][0]["attribute"] == "data-id"
+
+    def test_prepare_simple_format_object_stays_string(self):
+        """Ensure simple Format objects (e.g. Format(type='html')) stay as strings."""
+        from firecrawl.v2.types import Format
+
+        fmt = Format(type="html")
+        options = ScrapeOptions(formats=[fmt])
+        result = prepare_scrape_options(options)
+
+        assert "formats" in result
+        # Should be collapsed to a plain string, not a dict
+        assert "html" in result["formats"]
