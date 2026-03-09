@@ -296,6 +296,11 @@ impl From<&str> for AgentWebhookConfig {
 }
 
 /// Document metadata returned from scrape operations.
+///
+/// Metadata values from HTML meta tags can be either a single string or an array
+/// of strings (when a page has duplicate meta tags with the same name). The
+/// [`MetadataValue`](crate::document::MetadataValue) type handles both cases.
+/// Additional metadata fields not explicitly listed are captured in the `extra` map.
 #[serde_with::skip_serializing_none]
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -307,41 +312,69 @@ pub struct DocumentMetadata {
     pub error: Option<String>,
 
     // Basic meta tags
-    pub title: Option<String>,
-    pub description: Option<String>,
-    pub language: Option<String>,
-    pub keywords: Option<String>,
-    pub robots: Option<String>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub title: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub description: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub language: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub keywords: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub robots: Option<crate::document::MetadataValue>,
 
     // OpenGraph namespace
-    pub og_title: Option<String>,
-    pub og_description: Option<String>,
-    pub og_url: Option<String>,
-    pub og_image: Option<String>,
-    pub og_audio: Option<String>,
-    pub og_determiner: Option<String>,
-    pub og_locale: Option<String>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_title: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_description: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_url: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_image: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_audio: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_determiner: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_locale: Option<crate::document::MetadataValue>,
     pub og_locale_alternate: Option<Vec<String>>,
-    pub og_site_name: Option<String>,
-    pub og_video: Option<String>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_site_name: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub og_video: Option<crate::document::MetadataValue>,
 
     // Article namespace
-    pub article_section: Option<String>,
-    pub article_tag: Option<String>,
-    pub published_time: Option<String>,
-    pub modified_time: Option<String>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub article_section: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub article_tag: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub published_time: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub modified_time: Option<crate::document::MetadataValue>,
 
     // Dublin Core namespace
-    pub dcterms_keywords: Option<String>,
-    pub dc_description: Option<String>,
-    pub dc_subject: Option<String>,
-    pub dcterms_subject: Option<String>,
-    pub dcterms_audience: Option<String>,
-    pub dc_type: Option<String>,
-    pub dcterms_type: Option<String>,
-    pub dc_date: Option<String>,
-    pub dc_date_created: Option<String>,
-    pub dcterms_created: Option<String>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dcterms_keywords: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dc_description: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dc_subject: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dcterms_subject: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dcterms_audience: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dc_type: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dcterms_type: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dc_date: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dc_date_created: Option<crate::document::MetadataValue>,
+    #[serde(default, with = "crate::document::option_metadata_value")]
+    pub dcterms_created: Option<crate::document::MetadataValue>,
 
     // Response metadata
     pub scrape_id: Option<String>,
@@ -353,6 +386,13 @@ pub struct DocumentMetadata {
     pub cached_at: Option<String>,
     pub credits_used: Option<u32>,
     pub concurrency_limited: Option<bool>,
+
+    /// Additional metadata fields not covered by the named fields above.
+    ///
+    /// HTML pages can have arbitrary meta tags (e.g., `viewport`, `twitter:image`,
+    /// `theme-color`). These are captured here as raw JSON values.
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
 }
 
 /// Extracted attribute result.

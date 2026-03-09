@@ -488,6 +488,7 @@ fn convert_v2_document_to_v1(doc: Document) -> crate::document::Document {
             dc_date: metadata.dc_date,
             dc_date_created: metadata.dc_date_created,
             dcterms_created: metadata.dcterms_created,
+            extra: metadata.extra,
         },
         warning: doc.warning,
     }
