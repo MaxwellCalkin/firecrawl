@@ -24,6 +24,38 @@ def _convert_format_string(format_str: str) -> str:
     return format_mapping.get(format_str, format_str)
 
 
+def _normalize_format_model(fmt: Any, format_type: str) -> dict:
+    """
+    Convert a format model instance (e.g. ChangeTrackingFormat, AttributesFormat) to a dict
+    with proper camelCase keys for the API.
+
+    Args:
+        fmt: Format model instance with a model_dump() method
+        format_type: The camelCase format type string (e.g. 'changeTracking', 'attributes')
+
+    Returns:
+        Dictionary with the format type and all configuration options preserved
+    """
+    data = fmt.model_dump(exclude_none=True) if hasattr(fmt, 'model_dump') else {}
+    data['type'] = format_type
+
+    # snake_case to camelCase for known fields
+    if 'full_page' in data:
+        data['fullPage'] = data.pop('full_page')
+
+    # Normalize nested model instances (e.g. selectors with model_dump)
+    if 'selectors' in data and isinstance(data['selectors'], list):
+        normalized_selectors = []
+        for sel in data['selectors']:
+            if hasattr(sel, 'model_dump'):
+                normalized_selectors.append(sel.model_dump(exclude_none=True))
+            else:
+                normalized_selectors.append(sel)
+        data['selectors'] = normalized_selectors
+
+    return data
+
+
 def normalize_schema_for_openai(schema: Any) -> Any:
     """
     Normalize a schema for OpenAI compatibility by handling recursive references.
@@ -565,6 +597,20 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                             elif hasattr(fmt, 'type'):
                                 if fmt.type == 'json':
                                     converted_formats.append(_validate_json_format(fmt.model_dump()))
+                                elif fmt.type in ('changeTracking', 'change_tracking'):
+                                    converted_formats.append(_normalize_format_model(fmt, 'changeTracking'))
+                                elif fmt.type == 'screenshot':
+                                    normalized = {'type': 'screenshot'}
+                                    if getattr(fmt, 'full_page', None) is not None:
+                                        normalized['fullPage'] = fmt.full_page
+                                    if getattr(fmt, 'quality', None) is not None:
+                                        normalized['quality'] = fmt.quality
+                                    vp = getattr(fmt, 'viewport', None)
+                                    if vp is not None:
+                                        normalized['viewport'] = vp.model_dump(exclude_none=True) if hasattr(vp, 'model_dump') else vp
+                                    converted_formats.append(normalized)
+                                elif fmt.type == 'attributes':
+                                    converted_formats.append(_normalize_format_model(fmt, 'attributes'))
                                 else:
                                     converted_formats.append(_convert_format_string(fmt.type))
                             else:
@@ -614,6 +660,8 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                         elif hasattr(fmt, 'type'):
                             if fmt.type == 'json':
                                 converted_formats.append(_validate_json_format(fmt.model_dump()))
+                            elif fmt.type in ('changeTracking', 'change_tracking'):
+                                converted_formats.append(_normalize_format_model(fmt, 'changeTracking'))
                             elif fmt.type == 'screenshot':
                                 normalized = {'type': 'screenshot'}
                                 if getattr(fmt, 'full_page', None) is not None:
@@ -624,6 +672,8 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                                 if vp is not None:
                                     normalized['viewport'] = vp.model_dump(exclude_none=True) if hasattr(vp, 'model_dump') else vp
                                 converted_formats.append(normalized)
+                            elif fmt.type == 'attributes':
+                                converted_formats.append(_normalize_format_model(fmt, 'attributes'))
                             else:
                                 converted_formats.append(_convert_format_string(fmt.type))
                         else:

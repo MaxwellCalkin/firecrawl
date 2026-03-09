@@ -1,5 +1,8 @@
 import pytest
-from firecrawl.v2.types import JsonFormat, ScrapeOptions, PDFParser
+from firecrawl.v2.types import (
+    JsonFormat, ScrapeOptions, PDFParser,
+    ChangeTrackingFormat, AttributesFormat, AttributeSelector,
+)
 from firecrawl.v2.utils.validation import validate_scrape_options, prepare_scrape_options
 
 
@@ -309,3 +312,57 @@ class TestPrepareScrapeOptions:
         result = prepare_scrape_options(options)
 
         assert result["parsers"][0]["maxPages"] == 5
+
+    def test_prepare_change_tracking_format_model(self):
+        """Ensure ChangeTrackingFormat model instances preserve all options."""
+        ct = ChangeTrackingFormat(
+            type="changeTracking",
+            modes=["git-diff", "json"],
+            prompt="Track price changes",
+            tag="v1",
+        )
+        options = ScrapeOptions(formats=[ct])
+        result = prepare_scrape_options(options)
+
+        assert "formats" in result
+        fmt = result["formats"][0]
+        assert isinstance(fmt, dict)
+        assert fmt["type"] == "changeTracking"
+        assert fmt["modes"] == ["git-diff", "json"]
+        assert fmt["prompt"] == "Track price changes"
+        assert fmt["tag"] == "v1"
+
+    def test_prepare_change_tracking_format_snake_case_type(self):
+        """Ensure change_tracking type string is normalised to camelCase."""
+        ct = ChangeTrackingFormat(
+            type="change_tracking",
+            modes=["json"],
+        )
+        options = ScrapeOptions(formats=[ct])
+        result = prepare_scrape_options(options)
+
+        fmt = result["formats"][0]
+        assert fmt["type"] == "changeTracking"
+        assert fmt["modes"] == ["json"]
+
+    def test_prepare_attributes_format_model(self):
+        """Ensure AttributesFormat model instances preserve selectors."""
+        af = AttributesFormat(
+            type="attributes",
+            selectors=[
+                AttributeSelector(selector=".price", attribute="data-value"),
+                AttributeSelector(selector="#title", attribute="textContent"),
+            ],
+        )
+        options = ScrapeOptions(formats=[af])
+        result = prepare_scrape_options(options)
+
+        assert "formats" in result
+        fmt = result["formats"][0]
+        assert isinstance(fmt, dict)
+        assert fmt["type"] == "attributes"
+        assert len(fmt["selectors"]) == 2
+        assert fmt["selectors"][0]["selector"] == ".price"
+        assert fmt["selectors"][0]["attribute"] == "data-value"
+        assert fmt["selectors"][1]["selector"] == "#title"
+        assert fmt["selectors"][1]["attribute"] == "textContent"
